@@ -9,31 +9,31 @@ pg.init()
 
 colDarkGray = (55, 55, 55)
 colLightGray = (205, 205, 205)
-colBlack = (0, 0, 0)
 colWhite = (255, 255, 255)
-colRed = (195, 90, 90)
-colGreen = (90, 195, 90)
-colBlue = (90, 90, 195)
 
-scalingFactor = 2
-WIDTH, HEIGHT = 640 * scalingFactor, 360 * scalingFactor
+
+# change SF to change how the screen is scaled. deafualt is 2
+# SF = 1: 640, 360
+# SF = 2: 1280, 720
+# SF = 3: 1920, 1080
+SF = 2
+WIDTH, HEIGHT = 640 * SF, 360 * SF
 screen = pg.display.set_mode((WIDTH, HEIGHT))
-Font = pg.font.SysFont("arial", 8 * scalingFactor)
+Font = pg.font.SysFont("arial", 8 * SF)
 pg.display.set_caption("Hereford painters")
-icon = pg.image.load("paint brush icon.png")
-pg.display.set_icon(icon)
+pg.display.set_icon(pg.image.load("paint brush icon.png"))
 
 allInputBoxs = []
 allRadioButtons = []
 allLabels = []
 allCheckBoxs = []
+allButtons = []
 
 allWallInputBoxs = []
 allWindowInputBoxs = []
 
 # for wall and window text inputs
 allowedKeys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."]
-
 
 paintQualityCosts = {
 	"Standard": 1.00,
@@ -51,7 +51,7 @@ windowWidthMaximum = 2
 windowHeightMinimum = 0.9
 windowHeightMaximum = 1.5
 
-errorMessage = "Error messages: None" 
+errorMessage = "Error message: None" 
 
 # used to create and store invoices
 invoicePrefix = "HPI-"
@@ -77,7 +77,7 @@ def GetCenterOfRect(rect):
 	midX, midY = x + (w // 2), y + (h // 2)
 	return (midX, midY)
 
-def CalculateTotalArea(walls, windows, numberOfWindowsTextBox):
+def CalculateTotalArea(walls, windows):
 	totalWallArea = 0
 	totalWindowArea = 0
 	# go through every wall and get area
@@ -102,7 +102,7 @@ def CalculateTotalCost(totalArea, paintCost, undercoatCost):
 	# get normal paint cost and add the cost of undercoat
  	return round(float((totalArea * paintCost) + (totalArea * undercoatCost)), ndigits=2)
 
-def CheckAllValues(wallInput, windowInput, paintQualityButton, undercoatCheckBox, numberOfWindowsTextBox):
+def CheckAllValues(wallInput, windowInput):
 	allWalls = []
 	allWindows = []
 	for wallDimensions in wallInput:
@@ -138,7 +138,10 @@ def CheckAllValues(wallInput, windowInput, paintQualityButton, undercoatCheckBox
 
 	undercoatCost = undercoatCheckBox.value
 
-	totalArea, numberOfWindows = CalculateTotalArea(allWalls, allWindows, numberOfWindowsTextBox)
+	totalArea, numberOfWindows = CalculateTotalArea(allWalls, allWindows)
+	if totalArea <= 0:
+		return "The area of windows is greater than the area of walls."
+
 	if numberOfWindows < 1:
 		return "At least 1 window needs to be selected."
 	totalCost = CalculateTotalCost(totalArea, paintQualityCosts[paintQuality], undercoatCost)
@@ -163,7 +166,7 @@ def CreateInvoice(cost, area, paintQuality):
 	# make folder if HPI-invoices doesn't exist
 	if not invoiceExists: 
 		os.mkdir(invoiceDirectoryName)
-		print("New folder with name {name} created in current directory at {time}.".format(name=invoiceDirectoryName, time=time))
+		print("New folder with name {name} created in '{directory}' at {time}.".format(name=invoiceDirectoryName, directory=rootDirectory, time=time))
 
 	# change current working directory to HPI-invoices
 	if not invoiceDirectoryCreated:
@@ -201,47 +204,48 @@ def CreateInvoice(cost, area, paintQuality):
 		InvoiceFile.write(invoiceMessage)
 		InvoiceFile.write("Invoice number: {number}.\n".format(number=invoiceNumber))
 		InvoiceFile.write("Cost: £{cost}.\n".format(cost=cost))
-		InvoiceFile.write("Area: {area}m^2.\n".format(area=area))
+		InvoiceFile.write("Area: {area}m\u00b2.\n".format(area=area))
 		InvoiceFile.write("Paint quality: {quality}\n".format(quality=paintQuality))
 		InvoiceFile.write("Time processed: {time}.\n".format(time=time))
 		InvoiceFile.close()
-		print("New invoice with name {name} created at {time}.".format(name=fileName, time=time))
+		print("New invoice created in '{directory}' with name {name} created at {time}.".format(directory=currentWorkingDirectory, name=fileName, time=time))
 
 	invoiceNumberLabel.UpdateText("Invoice number: {number}.".format(number=invoiceNumber))
 	costLabel.UpdateText("Cost: £{cost}.".format(cost=cost))
-	areaLabel.UpdateText("Area: {area}m^\u00b2.".format(area=area))
+	areaLabel.UpdateText("Area: {area}m\u00b2.".format(area=area))
 	timeLabel.UpdateText("Time processed: {time}.".format(time=time))
 
 class Label:
 	def __init__(self, rect, text="", font=Font, color=colLightGray):
 		self.surface = screen
-		self.rect = pg.Rect(rect)
+		self.rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 		self.text = text
 		self.color = color
 		self.font = font
 		self.textSurface = self.font.render(self.text, True, self.color)
-		width = max(50, self.textSurface.get_width()+10)
-		height = max(25, self.textSurface.get_height()+10)
+		width = max(25 * SF, self.textSurface.get_width()+5*SF)
+		height = max(13.5 * SF, self.textSurface.get_height()+5*SF)
 		self.rect.w = width
 		self.rect.h = height
 		allLabels.append(self)
 
 	def Draw(self, width=3):
-		self.surface.blit(self.textSurface, (self.rect.x + 5, self.rect.y + 5))
+		self.surface.blit(self.textSurface, (self.rect.x + 2.5 * SF, self.rect.y + 2.5 * SF))
 		DrawRectOutline(self.surface, self.color, self.rect, width)
 
 	def UpdateText(self, newText):
 		self.text = newText
 		self.textSurface = self.font.render(self.text, True, self.color)
-		width = max(50, self.textSurface.get_width()+10)
-		height = max(25, self.textSurface.get_height()+10)
+		# change with and height for text
+		width = max(25 * SF, self.textSurface.get_width()+5*SF)
+		height = max(13.5 * SF, self.textSurface.get_height()+5*SF)
 		self.rect.w = width
 		self.rect.h = height
 
 class InputBox:
 	def __init__(self, rect, displayText='', inactiveColor=colLightGray, activeColor=colWhite):
 		self.surface = screen
-		self.rect = pg.Rect(rect)
+		self.rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 		self.InactiveColor = inactiveColor
 		self.activeColor = activeColor
 		self.currentColor = self.InactiveColor
@@ -254,8 +258,8 @@ class InputBox:
 		allInputBoxs.append(self)
 
 	def Draw(self):
-		self.surface.blit(self.displayTextSurface, (self.rect.x+5, self.rect.y+5))
-		self.surface.blit(self.textSurface, (self.rect.x+self.displayTextSurface.get_width()+10, self.rect.y+5))
+		self.surface.blit(self.displayTextSurface, (self.rect.x+2.5 * SF, self.rect.y+2.5 * SF))
+		self.surface.blit(self.textSurface, (self.rect.x+self.displayTextSurface.get_width()+5 * SF, self.rect.y+2.5 * SF))
 		pg.draw.rect(self.surface, self.currentColor, self.rect, 2)
 
 	def HandleEvent(self, event):
@@ -291,10 +295,13 @@ class InputBox:
 		if len(self.text) + 1 <= self.characterLimit:
 			# allow only certain characters
 			if key == "." and self.text == "0":
+				# allow decimal numbers that start with 0
 				self.text = "0."
 				return
+			# clear the box when user starts typing
 			if self.text == "0":
 				self.text = ""
+			# check if key is within allowed keys and add it to the text
 			if key in allowedKeys:
 				self.text += key
 
@@ -303,12 +310,12 @@ class RadioButton:
 		self.surface = screen
 		self.allRects = rect
 		# used for the border around all the radio buttons
-		x = self.allRects[0][0] - 10
-		y = self.allRects[0][1]
-		w = self.allRects[0][2]
+		x = (self.allRects[0][0] * SF) - 5 * SF
+		y = self.allRects[0][1] * SF
+		w = self.allRects[0][2] * SF
 		h = 0
 		for i in range(len(self.allRects)): 
-			h += self.allRects[0][3]
+			h += self.allRects[0][3] * SF
 		self.containingRect = pg.Rect(x, y, w, h)
 		self.allText = text
 		self.color = color
@@ -316,26 +323,26 @@ class RadioButton:
 		self.value = "none"
 		allRadioButtons.append(self)
 
-	def Draw(self, radius=8):
+	def Draw(self, radius=4*SF):
 		# draw border
 		DrawRectOutline(self.surface, self.color, self.containingRect, 3)
 		for i, rect in enumerate(self.allRects):
-			rect = pg.Rect(rect)
+			rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 			# draw the circle in the radio select
 			center = GetCenterOfRect(rect)
 			pg.gfxdraw.circle(self.surface, rect.x, center[1], radius, self.color)
 			# render the text of each button
 			self.textSurface = Font.render((self.allText[i] + " £"+ str(paintQualityCosts[self.allText[i]]) + " per squre meter."), True, self.color)
-			self.surface.blit(self.textSurface, (rect.x + 10, center[1] - 10))
+			self.surface.blit(self.textSurface, (rect.x + 5 * SF, center[1] - 5 * SF))
 
 			# fill the radio button when pressed
 			if self.active[i]:
 				pg.gfxdraw.filled_circle(self.surface, rect.x, center[1], radius, self.color)
 
 	def HandleEvent(self, event):
-		for i, rect in enumerate(self.allRects):
-			rect = pg.Rect(rect)
-			if event.type == pg.MOUSEBUTTONUP:
+		if event.type == pg.MOUSEBUTTONUP:
+			for i, rect in enumerate(self.allRects):
+				rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 				# check if button is pressed
 				if rect.collidepoint(pg.mouse.get_pos()):
 					# reset the buttons so that only one can be active
@@ -349,12 +356,12 @@ class RadioButton:
 class CheckBox:
 	def __init__(self, rect, text="", undercoatCost=0.45, color=colLightGray):
 		self.surface = screen
-		self.rect = pg.Rect(rect)
+		self.rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 		# rect for the inner box
-		x = self.rect.x + 5
-		y = self.rect.y + (self.rect.h // 2) - 5
-		w = 10
-		h = 10
+		x = self.rect.x + 2.5 * SF
+		y = self.rect.y + (self.rect.h // 2) - 2.5 * SF
+		w = 5 * SF
+		h = 5 * SF
 		self.checkRect = pg.Rect(x, y, w, h)
 
 		self.text = text
@@ -376,7 +383,7 @@ class CheckBox:
 			# draw filled check box
 			pg.draw.rect(self.surface, self.color, self.checkRect)
 		# render text for button
-		self.surface.blit(self.textSurface, (self.checkRect.x + self.checkRect.w + 5, self.rect.y + 5))
+		self.surface.blit(self.textSurface, (self.checkRect.x + self.checkRect.w + 2.5 * SF, self.rect.y + 2.5 * SF))
 
 	def HandleEvent(self, event):
 		if event.type == pg.MOUSEBUTTONUP:
@@ -391,42 +398,79 @@ class CheckBox:
 		else:
 			self.value = 0
 
+class Button:
+	def __init__(self, rect, text="", inactiveColor=colLightGray, activeColor=colWhite):
+		self.surface = screen
+		self.rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
+		self.text = text
+		self.inactiveColor = inactiveColor
+		self.activeColor = activeColor
+		self.currentColor = self.inactiveColor
+		self.textSurface = Font.render(self.text, True, self.currentColor)
+		self.active = False
+		allButtons.append(self)
+
+	def Draw(self, width=3):
+		DrawRectOutline(self.surface, self.currentColor, self.rect, width)
+		self.surface.blit(self.textSurface, (self.rect.x+2.5 * SF, self.rect.y + 2.5 * SF))
+
+	def HandleEvent(self, event):
+		if event.type == pg.MOUSEBUTTONDOWN:
+			# check if button has been pressed
+			if self.rect.collidepoint(pg.mouse.get_pos()):
+				self.active = True
+
+		# check if button has been released
+		if event.type == pg.MOUSEBUTTONUP:
+			self.active = False
+
+		# change color
+		if self.active:
+			self.currentColor = self.activeColor
+		else:
+			self.currentColor = self.inactiveColor
+		# re-render text
+		self.textSurface = Font.render(self.text, True, self.currentColor)
+
 # create objects 
 # title
-TitleFont = pg.font.SysFont("arial", 18 * scalingFactor)
-titleLabel = Label((350, 25, WIDTH - 50, 40), "Hereford Painters and Decorators", TitleFont)
+TitleFont = pg.font.SysFont("arial", 18 * SF)
+titleLabel = Label((175, 12.5, WIDTH - (25 ), 20), "Hereford Painters and Decorators", TitleFont)
 
 # create wall width and height input boxs as well as label
-wallLabel = Label((100, 100, 100, 30), "Wall dimensions:")
-wallLabel = Label((310, 100, 100, 30), "Minimum width: " + str(wallWidthMinimum) + "m. Maximum width: " + str(wallWidthMaximum) + "m. Minimum height: " + str(wallHeightMinimum) + "m. Maximum height: " + str(wallHeightMaximum) + "m.")
-wall1WidthTextBox = InputBox((100, 140, 200, 30), "First wall width:")
-wall1HeightTextBox = InputBox((100, 180, 200, 30), "Wall height:")
-wall2WidthTextBox = InputBox((310, 140, 200, 30), "Second wall width:")
+wallLabel = Label((50, 50, 50, 15), "Wall dimensions:")
+wallLabel = Label((50, 70, 50, 15), "Minimum width: " + str(wallWidthMinimum) + "m. Maximum width: " + str(wallWidthMaximum) + "m. Minimum height: " + str(wallHeightMinimum) + "m. Maximum height: " + str(wallHeightMaximum) + "m.")
+wall1WidthTextBox = InputBox((50, 90, 100, 15), "First wall width:")
+wall2WidthTextBox = InputBox((50, 110, 100, 15), "Second wall width:")
+wall1HeightTextBox = InputBox((50, 130, 100, 15), "Wall height:")
 
 allWallInputBoxs.append((wall1WidthTextBox, wall1HeightTextBox))
 allWallInputBoxs.append((wall2WidthTextBox, wall1HeightTextBox))
 
 # create window width and height input boxs as well as label
-windowLabel = Label((410, 250, 100, 30), "Window dimensions:")
-windowLabel = Label((410, 290, 100, 30), "Minimum width: " + str(windowWidthMinimum) + "m. Maximum width: " + str(windowWidthMaximum) + "m. Minimum height: " + str(windowHeightMinimum) + "m. Maximum height: " + str(windowHeightMaximum) + "m.")
-numberOfWindowsTextBox = InputBox((410, 330, 200, 30), "Number of Windows:")
-windowWidthTextBox = InputBox((410, 370, 200, 30), "Window width:")
-windowHeightTextBox = InputBox((410, 410, 200, 30), "Window height:")
+windowLabel = Label((205, 155, 50, 15), "Window dimensions:")
+windowLabel = Label((205, 175, 50, 15), "Minimum width: " + str(windowWidthMinimum) + "m. Maximum width: " + str(windowWidthMaximum) + "m. Minimum height: " + str(windowHeightMinimum) + "m. Maximum height: " + str(windowHeightMaximum) + "m.")
+numberOfWindowsTextBox = InputBox((205, 195, 100, 15), "Number of Windows:")
+windowWidthTextBox = InputBox((205, 215, 100, 15), "Window width:")
+windowHeightTextBox = InputBox((205, 235, 100, 15), "Window height:")
 
 allWindowInputBoxs.append((windowWidthTextBox, windowHeightTextBox))
 
 # create input for paint qulity 
-radioLabel = Label((100, 250, 100, 30), "Paint quality:")
-paintQualityButton = RadioButton([(110, 290, 250, 30), (110, 320, 250, 30), (110, 350, 250, 30)], ["Standard", "Economic", "Premium"])
+radioLabel = Label((50, 155, 50, 15), "Paint quality:")
+paintQualityButton = RadioButton([(55, 175, 125, 15), (55, 190, 125, 15), (55, 205, 125, 15)], ["Standard", "Economic", "Premium"])
 
 # input for undercoat
-undercoatCheckBox = CheckBox((100, 390, 100, 30), "Undercoat")
+undercoatCheckBox = CheckBox((50, 225, 50, 15), "Undercoat")
 
 # used to display error messages to the user such as width being to short
-errorMessageLabel = Label((100, 680, 500, 30), str(errorMessage))
+errorMessageLabel = Label((50, 340, 250, 15), str(errorMessage))
 
 # used to display invoice data
-invoiceNumberLabel = Label((100, 490, 500, 30), "Invoice number: ")
-costLabel = Label((100, 530, 500, 30), "Cost: ")
-areaLabel = Label((100, 570, 500, 30), "Area: ")
-timeLabel = Label((100, 610, 500, 30), "Time processed: ")
+invoiceNumberLabel = Label((50, 255, 250, 15), "Invoice number: ")
+costLabel = Label((50, 275, 250, 15), "Cost: ")
+areaLabel = Label((50, 295, 250, 15), "Area: ")
+timeLabel = Label((50, 315, 250, 15), "Time processed: ")
+
+# subit button to create invoice
+submitButton = Button((205, 280, 50, 15), "Submit")

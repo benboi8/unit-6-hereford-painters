@@ -16,6 +16,9 @@ def DrawLoop():
     for checkBox in allCheckBoxs:
         checkBox.Draw()
 
+    for button in allButtons:
+        button.Draw()
+
     # change the text of the error message
     errorMessageLabel.UpdateText(str(errorMessage))
 
@@ -36,10 +39,6 @@ def Main():
                 if event.key == pg.K_ESCAPE:
                     Quit()
 
-                if event.key == pg.K_RETURN:
-                    errorMessage = "Error messages: "
-                    errorMessage += CheckAllValues(allWallInputBoxs, allWindowInputBoxs, paintQualityButton, undercoatCheckBox, numberOfWindowsTextBox)
-
             for inputBox in allInputBoxs:
                 inputBox.HandleEvent(event)
 
@@ -48,6 +47,15 @@ def Main():
 
             for checkbox in allCheckBoxs:
                 checkbox.HandleEvent(event)
+
+            for button in allButtons:
+                button.HandleEvent(event)
+
+        # submit all the data to create an invoice
+        if submitButton.active:
+            errorMessage = "Error message: "
+            errorMessage += CheckAllValues(allWallInputBoxs, allWindowInputBoxs)
+            submitButton.active = False
 
         DrawLoop()
 
