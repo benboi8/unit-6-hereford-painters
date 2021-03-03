@@ -41,6 +41,8 @@ paintQualityCosts = {
 	"Premium": 1.75,
 }
 
+undercoatCost = 0.45
+
 wallWidthMinimum = 1
 wallWidthMaximum = 25
 wallHeightMinimum = 2.4
@@ -201,19 +203,25 @@ def CreateInvoice(cost, area, paintQuality):
 	fileName = invoicePrefix + invoiceNumber + ".txt"
 	with open(fileName, "w+") as InvoiceFile:
 		time = dt.datetime.utcnow()
+		timeFormat = time.strftime("%Y/%m/%d %H:%M:%S")
+		if undercoatCheckBox.value == undercoatCost:
+			hasUndercoat = "Yes"
+		else:
+			hasUndercoat = "No"
 		InvoiceFile.write(invoiceMessage)
 		InvoiceFile.write("Invoice number: {number}.\n".format(number=invoiceNumber))
 		InvoiceFile.write("Cost: £{cost}.\n".format(cost=cost))
 		InvoiceFile.write("Area: {area}m\u00b2.\n".format(area=area))
 		InvoiceFile.write("Paint quality: {quality}\n".format(quality=paintQuality))
-		InvoiceFile.write("Time processed: {time}.\n".format(time=time))
+		InvoiceFile.write("Included undercoat: {hasUndercoat}.\n".format(hasUndercoat=hasUndercoat))
+		InvoiceFile.write("Time processed: {time}.\n".format(time=timeFormat))
 		InvoiceFile.close()
-		print("New invoice created in '{directory}' with name {name} created at {time}.".format(directory=currentWorkingDirectory, name=fileName, time=time))
+		print("New invoice created in '{directory}' with name {name} created at {time}.".format(directory=currentWorkingDirectory, name=fileName, time=timeFormat))
 
 	invoiceNumberLabel.UpdateText("Invoice number: {number}.".format(number=invoiceNumber))
 	costLabel.UpdateText("Cost: £{cost}.".format(cost=cost))
 	areaLabel.UpdateText("Area: {area}m\u00b2.".format(area=area))
-	timeLabel.UpdateText("Time processed: {time}.".format(time=time))
+	timeLabel.UpdateText("Time processed: {time}.".format(time=timeFormat))
 
 class Label:
 	def __init__(self, rect, text="", font=Font, color=colLightGray):
@@ -332,7 +340,7 @@ class RadioButton:
 			center = GetCenterOfRect(rect)
 			pg.gfxdraw.circle(self.surface, rect.x, center[1], radius, self.color)
 			# render the text of each button
-			self.textSurface = Font.render((self.allText[i] + " £"+ str(paintQualityCosts[self.allText[i]]) + " per squre meter."), True, self.color)
+			self.textSurface = Font.render((self.allText[i] + " £"+ str(paintQualityCosts[self.allText[i]]) + " per m\u00b2."), True, self.color)
 			self.surface.blit(self.textSurface, (rect.x + 5 * SF, center[1] - 5 * SF))
 
 			# fill the radio button when pressed
@@ -354,7 +362,7 @@ class RadioButton:
 					self.value = self.allText[i]
 			
 class CheckBox:
-	def __init__(self, rect, text="", undercoatCost=0.45, color=colLightGray):
+	def __init__(self, rect, text="", undercoatCost=undercoatCost, color=colLightGray):
 		self.surface = screen
 		self.rect = pg.Rect(rect[0] * SF, rect[1] * SF, rect[2] * SF, rect[3] * SF)
 		# rect for the inner box
@@ -366,7 +374,8 @@ class CheckBox:
 
 		self.text = text
 		self.color = color
-		self.textSurface = Font.render(text, True, self.color)
+		self.textSurface = Font.render(text + " £0.45 per m\u00b2.", True, self.color)
+		self.rect = pg.Rect(self.rect.x, self.rect.y, self.textSurface.get_width() + 12 * SF, self.rect.h)
 
 		self.undercoatCost = undercoatCost
 
@@ -458,7 +467,7 @@ allWindowInputBoxs.append((windowWidthTextBox, windowHeightTextBox))
 
 # create input for paint qulity 
 radioLabel = Label((50, 155, 50, 15), "Paint quality:")
-paintQualityButton = RadioButton([(55, 175, 125, 15), (55, 190, 125, 15), (55, 205, 125, 15)], ["Standard", "Economic", "Premium"])
+paintQualityButton = RadioButton([(55, 175, 95, 15), (55, 190, 95, 15), (55, 205, 95, 15)], ["Standard", "Economic", "Premium"])
 
 # input for undercoat
 undercoatCheckBox = CheckBox((50, 225, 50, 15), "Undercoat")
